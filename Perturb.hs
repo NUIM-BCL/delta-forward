@@ -1,8 +1,4 @@
 {-# LANGUAGE UnicodeSyntax #-}
-{-# LANGUAGE MultiParamTypeClasses #-}
-{-# LANGUAGE FlexibleInstances #-}
-{-# LANGUAGE FunctionalDependencies #-}
-{-# LANGUAGE TupleSections #-}
 
 module Perturb (perturbs)
 where
