@@ -25,6 +25,10 @@ instance (Perturbable a, Perturbable b) ⇒ Perturbable (a,b) where
     [ ((x',y),(\z (x'',y'')→(x_ z x'',y''))) | (x', x_) ← perturbs ε x] ++
     [ ((x,y'),(\z (x'',y'')→(x'', y_ z y''))) | (y', y_) ← perturbs ε y]
 
+instance Perturbable a ⇒ Perturbable (Maybe a) where
+  perturbs ε Nothing = []
+  perturbs ε (Just x) = [(Just x', \z (Just x'') → Just (x_ z x'')) | (x',x_) ← perturbs ε x]
+
 grad ∷ (Perturbable a) ⇒ Double → (a → Double) → a → a
 grad ε f x = foldl step x $ perturbs ε x
   where
