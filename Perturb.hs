@@ -5,35 +5,44 @@ where
 
 import Prelude.Unicode
 
--- 'perturbs' takes an ε and an object and returns a list of perturbed
--- primal objects paired with injectors that swap in a new value for
--- the perturbed one.
+-- 'perturbs' takes an ε and an object and returns a list of
+-- perturbers.  A perturber takes a function (Double→Double) that,
+-- given the value of a leaf, gives the new value for that leaf, and
+-- an aggregate object, and gives the result of applying that function
+-- to change one leaf.
 class Perturbable a where
-  perturbs ∷ Double → a → [(a,Double→a→a)]
+  perturbs ∷ a → [(Double→Double)→a→a]
 
 instance Perturbable Double where
-  perturbs ε x = [(x+ε,const)]
+  perturbs x = [id]
 
 instance Perturbable a ⇒ Perturbable [a] where
-  perturbs ε [] = []
-  perturbs ε (x:xs) =
-    [(x':xs, \z (y:ys) → x_ z y : ys) | (x',x_) ← perturbs ε x] ++
-    [(x:xs',\z (y:ys) → y : xs_ z ys) | (xs',xs_) ← perturbs ε xs]
+  perturbs [] = []
+  perturbs (x:xs) =
+    [\g (y:ys) → x_ g y : ys | x_ ← perturbs x] ++
+    [\g (y:ys) → y : xs_ g ys | xs_ ← perturbs xs]
 
 instance (Perturbable a, Perturbable b) ⇒ Perturbable (a,b) where
-  perturbs ε (x,y) =
-    [ ((x',y),(\z (x'',y'')→(x_ z x'',y''))) | (x', x_) ← perturbs ε x] ++
-    [ ((x,y'),(\z (x'',y'')→(x'', y_ z y''))) | (y', y_) ← perturbs ε y]
+  perturbs (x,y) =
+    [ \g (x'',y'') → (x_ g x'',y'') | x_ ← perturbs x] ++
+    [ \g (x'',y'') → (x'', y_ g y'') | y_ ← perturbs y]
 
 instance Perturbable a ⇒ Perturbable (Maybe a) where
-  perturbs ε Nothing = []
-  perturbs ε (Just x) = [(Just x', \z (Just x'') → Just (x_ z x'')) | (x',x_) ← perturbs ε x]
+  perturbs Nothing = []
+  perturbs (Just x) = [\g (Just x'') → Just (x_ g x'') | x_ ← perturbs x]
 
+-- asymmetric difference, error is O(ε)
 grad ∷ (Perturbable a) ⇒ Double → (a → Double) → a → a
-grad ε f x = foldl step x $ perturbs ε x
+grad ε f x = foldl step x $ perturbs x
   where
     y = f x
-    step dx (x',x_) = x_ ((f x' - y)/ε) dx
+    step dx p = p (const ((f (p (+ε) x) - y) / ε)) dx
+
+-- symmetric difference, error is O(ε²)
+grad_ ∷ (Perturbable a) ⇒ Double → (a → Double) → a → a
+grad_ ε f x = foldl step x $ perturbs x
+  where
+    step dx p = p (const ((f (p (+ε) x) - f (p (+(-ε)) x)) / (2*ε))) dx
 
 -- Examples:
 
