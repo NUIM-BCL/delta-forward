@@ -24,3 +24,7 @@ instance (Grad a, Grad b) ⇒ Grad (a,b) where
 
 instance Grad a ⇒ Grad (Maybe a) where
   grad ε f x = x >>= Just ∘ grad ε (f ∘ Just)
+
+instance (Grad a, Grad b) ⇒ Grad (Either a b) where
+  grad ε f (Left x) = Left $ grad ε (f ∘ Left) x
+  grad ε f (Right x) = Right $ grad ε (f ∘ Right) x
