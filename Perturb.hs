@@ -1,4 +1,5 @@
 {-# LANGUAGE UnicodeSyntax #-}
+{-# LANGUAGE TupleSections #-}
 
 module Perturb (perturbs)
 where
@@ -16,20 +17,32 @@ class Perturbable a where
 instance Perturbable Double where
   perturbs x = [id]
 
+perturbsConstruct0 ∷ z → z → [(Double→Double)→z→z]
+perturbsConstruct0 constructor x = [] 
+
+perturbsConstruct1 ∷ Perturbable a ⇒ (a → z) → (z → a) → z → [(Double→Double)→z→z]
+perturbsConstruct1 constructor accessor x =
+  [\f z → constructor (p f (accessor z)) | p ← perturbs (accessor x)]
+
+perturbsConstruct2 ∷ (Perturbable a, Perturbable b) ⇒ (a → b → z) → (z→a) → (z→b) → z → [(Double→Double)→z→z]
+perturbsConstruct2 constructor accessor1 accessor2 x =
+  [\f z → flip constructor (accessor2 z) (p f (accessor1 z)) | p ← perturbs (accessor1 x)] ++
+  [\f z →      constructor (accessor1 z) (p f (accessor2 z)) | p ← perturbs (accessor2 x)]
+
 instance Perturbable a ⇒ Perturbable [a] where
-  perturbs [] = []
-  perturbs (x:xs) =
-    [\g (y:ys) → x_ g y : ys | x_ ← perturbs x] ++
-    [\g (y:ys) → y : xs_ g ys | xs_ ← perturbs xs]
+  perturbs x@[] = perturbsConstruct0 [] x
+  perturbs x@(_:_) = perturbsConstruct2 (:) head tail x
 
 instance (Perturbable a, Perturbable b) ⇒ Perturbable (a,b) where
-  perturbs (x,y) =
-    [ \g (x'',y'') → (x_ g x'',y'') | x_ ← perturbs x] ++
-    [ \g (x'',y'') → (x'', y_ g y'') | y_ ← perturbs y]
+  perturbs x@(_,_) = perturbsConstruct2 (,) fst snd x
 
 instance Perturbable a ⇒ Perturbable (Maybe a) where
-  perturbs Nothing = []
-  perturbs (Just x) = [\g (Just x'') → Just (x_ g x'') | x_ ← perturbs x]
+  perturbs x@Nothing = perturbsConstruct0 Nothing x
+  perturbs x@(Just _) =  perturbsConstruct1 Just (\(Just y)→y) x
+
+instance (Perturbable a, Perturbable b) ⇒ Perturbable (Either a b) where
+  perturbs x@(Left _) = perturbsConstruct1 Left (\(Left y)→y) x
+  perturbs x@(Right _) = perturbsConstruct1 Right (\(Right y)→y) x
 
 -- asymmetric difference, error is O(ε)
 grad ∷ (Perturbable a) ⇒ Double → (a → Double) → a → a
