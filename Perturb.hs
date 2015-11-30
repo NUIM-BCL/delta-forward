@@ -1,10 +1,11 @@
 {-# LANGUAGE UnicodeSyntax #-}
 {-# LANGUAGE TupleSections #-}
 
-module Perturb (perturbs)
+module Perturb (perturbs, grad, grad_)
 where
 
-import Prelude.Unicode
+-- A perturber Pert a applies the given operation to some leaf Double in a.
+type Pert a = (Double → Double) → a → a
 
 -- 'perturbs' takes an ε and an object and returns a list of
 -- perturbers.  A perturber takes a function (Double→Double) that,
@@ -12,19 +13,19 @@ import Prelude.Unicode
 -- an aggregate object, and gives the result of applying that function
 -- to change one leaf.
 class Perturbable a where
-  perturbs ∷ a → [(Double→Double)→a→a]
+  perturbs ∷ a → [Pert a]
 
 instance Perturbable Double where
-  perturbs x = [id]
+  perturbs _x = [id]
 
-perturbsConstruct0 ∷ z → z → [(Double→Double)→z→z]
-perturbsConstruct0 constructor x = [] 
+perturbsConstruct0 ∷ z → z → [Pert z]
+perturbsConstruct0 _constructor _x = []
 
-perturbsConstruct1 ∷ Perturbable a ⇒ (a → z) → (z → a) → z → [(Double→Double)→z→z]
+perturbsConstruct1 ∷ Perturbable a ⇒ (a → z) → (z → a) → z → [Pert z]
 perturbsConstruct1 constructor accessor x =
   [\f z → constructor (p f (accessor z)) | p ← perturbs (accessor x)]
 
-perturbsConstruct2 ∷ (Perturbable a, Perturbable b) ⇒ (a → b → z) → (z→a) → (z→b) → z → [(Double→Double)→z→z]
+perturbsConstruct2 ∷ (Perturbable a, Perturbable b) ⇒ (a → b → z) → (z→a) → (z→b) → z → [Pert z]
 perturbsConstruct2 constructor accessor1 accessor2 x =
   [\f z → flip constructor (accessor2 z) (p f (accessor1 z)) | p ← perturbs (accessor1 x)] ++
   [\f z →      constructor (accessor1 z) (p f (accessor2 z)) | p ← perturbs (accessor2 x)]
