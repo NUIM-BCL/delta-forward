@@ -27,7 +27,7 @@ perturbsConstruct1 constructor accessor x =
 
 perturbsConstruct2 ∷ (Perturbable a, Perturbable b) ⇒ (a → b → z) → (z→a) → (z→b) → z → [Pert z]
 perturbsConstruct2 constructor accessor1 accessor2 x =
-  [\f z → flip constructor (accessor2 z) (p f (accessor1 z)) | p ← perturbs (accessor1 x)] ++
+  [\f z → flip constructor (accessor2 z) (p f (accessor1 z)) | p ← perturbs (accessor1 x)] ⧺
   [\f z →      constructor (accessor1 z) (p f (accessor2 z)) | p ← perturbs (accessor2 x)]
 
 instance Perturbable a ⇒ Perturbable [a] where
@@ -56,7 +56,7 @@ grad ε f x = foldl step x $ perturbs x
 grad_ ∷ (Perturbable a) ⇒ Double → (a → Double) → a → a
 grad_ ε f x = foldl step x $ perturbs x
   where
-    step dx p = p (const ((f (p (+ε) x) - f (p (+(-ε)) x)) / (2*ε))) dx
+    step dx p = p (const ((f (p (+ε) x) - f (p (+(-ε)) x)) / (2⋅ε))) dx
 
 -- Examples:
 
@@ -71,3 +71,6 @@ grad_ ε f x = foldl step x $ perturbs x
 
 -- *Perturb> grad 1e-3 (sqrt ∘ sum ∘ map (^2)) [1..5]
 -- [0.13490616545741574,0.2697424594266806,0.40457630202705985,0.5394076933935565,0.6742366336585093]
+
+-- *Perturb> grad 1e-9 (\(x,[y,z]) → x + y⋅z) (1, [2, 3])
+-- (1.000000082740371,[3.000000248221113,2.000000165480742])
