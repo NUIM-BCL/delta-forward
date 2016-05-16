@@ -10,11 +10,11 @@ import Data.Maybe (fromJust)
 -- A perturber Pert a applies the given operation to some leaf Double in a.
 type Pert a = (Double → Double) → a → a
 
--- 'perturbs' takes an ε and an object and returns a list of
--- perturbers.  A perturber takes a function (Double→Double) that,
--- given the value of a leaf, gives the new value for that leaf, and
--- an aggregate object, and gives the result of applying that function
--- to change one leaf.
+-- 'perturbs' takes an object and returns a list of perturbers of that
+-- object.  A perturber takes a function (Double → Double) that, given
+-- the value of a leaf, gives the new value for that leaf, and an
+-- aggregate object, and gives the result of applying that function to
+-- change some particular leaf.
 class Perturbable a where
   perturbs ∷ a → [Pert a]
 
@@ -28,7 +28,7 @@ perturbsConstruct1 ∷ Perturbable a ⇒ (a → z) → (z → a) → z → [Pert
 perturbsConstruct1 constructor accessor x =
   [\f z → constructor (p f (accessor z)) | p ← perturbs (accessor x)]
 
-perturbsConstruct2 ∷ (Perturbable a, Perturbable b) ⇒ (a → b → z) → (z→a) → (z→b) → z → [Pert z]
+perturbsConstruct2 ∷ (Perturbable a, Perturbable b) ⇒ (a → b → z) → (z → a) → (z → b) → z → [Pert z]
 perturbsConstruct2 constructor accessor1 accessor2 x =
   [\f z → flip constructor (accessor2 z) (p f (accessor1 z)) | p ← perturbs (accessor1 x)] ⧺
   [\f z →      constructor (accessor1 z) (p f (accessor2 z)) | p ← perturbs (accessor2 x)]
@@ -45,8 +45,8 @@ instance Perturbable a ⇒ Perturbable (Maybe a) where
   perturbs x@(Just _) =  perturbsConstruct1 Just fromJust x
 
 instance (Perturbable a, Perturbable b) ⇒ Perturbable (Either a b) where
-  perturbs x@(Left _) = perturbsConstruct1 Left (either id ⊥) x
-  perturbs x@(Right _) = perturbsConstruct1 Right (either ⊥ id) x
+  perturbs x@(Left  _) = perturbsConstruct1 Left  (either id ⊥)  x
+  perturbs x@(Right _) = perturbsConstruct1 Right (either ⊥  id) x
 
 -- asymmetric difference, error is O(ε)
 grad ∷ (Perturbable a) ⇒ Double → (a → Double) → a → a
