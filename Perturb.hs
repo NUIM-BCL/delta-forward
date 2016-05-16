@@ -4,6 +4,9 @@
 module Perturb (perturbs, grad, grad_)
 where
 
+import Prelude.Unicode
+import Data.Maybe (fromJust)
+
 -- A perturber Pert a applies the given operation to some leaf Double in a.
 type Pert a = (Double → Double) → a → a
 
@@ -39,11 +42,11 @@ instance (Perturbable a, Perturbable b) ⇒ Perturbable (a,b) where
 
 instance Perturbable a ⇒ Perturbable (Maybe a) where
   perturbs x@Nothing = perturbsConstruct0 Nothing x
-  perturbs x@(Just _) =  perturbsConstruct1 Just (\(Just y)→y) x
+  perturbs x@(Just _) =  perturbsConstruct1 Just fromJust x
 
 instance (Perturbable a, Perturbable b) ⇒ Perturbable (Either a b) where
-  perturbs x@(Left _) = perturbsConstruct1 Left (\(Left y)→y) x
-  perturbs x@(Right _) = perturbsConstruct1 Right (\(Right y)→y) x
+  perturbs x@(Left _) = perturbsConstruct1 Left (either id ⊥) x
+  perturbs x@(Right _) = perturbsConstruct1 Right (either ⊥ id) x
 
 -- asymmetric difference, error is O(ε)
 grad ∷ (Perturbable a) ⇒ Double → (a → Double) → a → a
